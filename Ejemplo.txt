@@ -1,0 +1,95 @@
+public static void AFD(String path) {
+        //int estadosT = 2;
+        File file = new File(path);
+        try {
+            Scanner scanner = new Scanner(file);
+            String nombre = path.replace("./regexps/","./afd/");
+            nombre = nombre.replace(".rgx", ".afd");
+            String alf = scanner.nextLine();
+            //String[] parts = alf.split(",");
+            //List<String> trans = Arrays.asList(parts);
+            String inst = scanner.nextLine();
+            inst = inst.replace("+","|");
+            System.out.println(constAFN(inst));
+            //HashMap<Integer,ArrayList<String>> tabla = new HashMap<Integer,ArrayList<String>>();
+            /*File afdfile = new File(nombre);
+            if (!afdfile.exists()) {
+                afdfile.createNewFile();
+            }
+            FileWriter fw = new FileWriter(afdfile);
+            fw.write(alf+"\n");
+            fw.close();*/
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("El archivo no existe.");
+        } /*catch (IOException e) {
+            e.fillInStackTrace();
+        }*/
+    }
+
+    public static class State {
+        public char label;
+        public State next1;
+        public State next2;
+    }
+    public static State constAFN(String regex) {
+        Stack<State> stack = new Stack<>();
+
+        for (int i = 0; i < regex.length(); i++) {
+            char symbol = regex.charAt(i);
+
+            if (symbol == '(') {
+                State newState = new State();
+                newState.label = symbol;
+                stack.push(newState);
+                System.out.println(Arrays.asList(stack));
+            } else if (symbol == ')') {
+                State prev = null;
+                
+                while (!stack.isEmpty()) {
+                    State top = stack.pop();
+
+                    if (top.label == '(') {
+                        prev = top;
+                        break;
+                    }
+
+                    prev = merge(prev, top);
+                }
+                stack.push(prev);
+            } else if (symbol == '*') {
+                State state = stack.pop();
+                State newState = new State();
+                newState.label = symbol;
+                newState.next1 = state;
+                stack.push(newState);
+            } else if (symbol == '|') {
+                State prevState1 = stack.pop();
+                State prevState2 = stack.pop();
+                State newState = new State();
+                newState.label = symbol;
+                newState.next1 = prevState2;
+                newState.next2 = prevState1;
+                stack.push(newState);
+            } else {
+                State newState = new State();
+                newState.label = symbol;
+                stack.push(newState);
+            }
+        }
+        return stack.pop();
+    }
+    
+    public static State merge(State state1, State state2) {
+        if (state1 == null) {
+            return state2;
+        }
+        if (state2 == null) {
+            return state1;
+        }
+        State newState = new State();
+        newState.next1 = state1;
+        newState.next2 = state2;
+
+        return newState;
+    }

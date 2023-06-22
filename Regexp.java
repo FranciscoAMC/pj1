@@ -10,6 +10,10 @@ import java.util.regex.Pattern;
 // siempre que se cumplan los lineamientos de las instrucciones.
 public class Regexp {
     static String salida;
+    static String alf;
+    static List<String> termi;
+    static ArrayList<String> NoTerminales;
+    static int noTerm = 65;
     // Implemente aqui su metodo main. Recuerde que debe recibir los argumentos en este orden
     // 1. en path con el archivo .rgx donde esta la informacion de la expresion regular
     // 2. El modo de ejecucion [-afd|-gld|-min|-eval]
@@ -20,16 +24,13 @@ public class Regexp {
             String bandera = args[1];
             switch (bandera) {
                 case "-afd":
-                    //salida = args[2];
                     AFD(path);
                     break;
                 case "-gld":
-                    //salida = args[2];
                     System.out.println("Realizando Gramatica");
-                    //gramatica(path,salida);
+                    gramatica(path);
                     break;
                 case "-min":
-                    //salida = args[2];
                     System.out.println("Realizando el minimo");
                     //minimo(path,salida);
                     break;
@@ -48,7 +49,7 @@ public class Regexp {
     }
 
     public static void AFD(String path) {
-        int estadosT = 2;
+        //int estadosT = 2;
         File file = new File(path);
         try {
             Scanner scanner = new Scanner(file);
@@ -59,7 +60,6 @@ public class Regexp {
             //List<String> trans = Arrays.asList(parts);
             String inst = scanner.nextLine();
             inst = inst.replace("+","|");
-            constAFN(inst);
             //HashMap<Integer,ArrayList<String>> tabla = new HashMap<Integer,ArrayList<String>>();
             /*File afdfile = new File(nombre);
             if (!afdfile.exists()) {
@@ -76,53 +76,87 @@ public class Regexp {
         }*/
     }
 
-    public static class State {
-        public char label;
-        public State next1;
-        public State next2;
-    }
-    public static void /*State*/ constAFN(String regex) {
-        Stack<State> stack = new Stack<>();
-
-        for (int i = 0; i < regex.length(); i++) {
-            char symbol = regex.charAt(i);
-
-            if (symbol == '(') {
-                State newState = new State();
-                newState.label = symbol;
-                stack.push(newState);
-            } else if (symbol == ')') {
-                State prev = null;
-                
-                while (!stack.isEmpty()) {
-                    State top = stack.pop();
-
-                    if (top.label == '(') {
-                        prev = top;
-                        break;
-                    }
-
-                    prev = merge(prevState, top);
-                }
-                stack.push(prev);
-            } else if (symbol == '*') {
-                State state = stack.pop();
-                State newState = new State();
-                newState.label = symbol;
-                newState.next1 = state;
-                stack.push(newState);
-            } else if (symbol == '|') {
-                State 
+    public static void gramatica(String path) {
+        File file = new File(path);
+        try {
+            Scanner scanner = new Scanner(file);
+            String nombre = path.replace("./regexps/","./afd/");
+            nombre = nombre.replace(".rgx", ".gld");
+            alf = scanner.nextLine();
+            termi = Arrays.asList(alf.split(","));
+            System.out.println(alf);
+            System.out.println(termi);
+            String inst = scanner.nextLine();
+            inst = inst.replace("+","|");
+            List<Gram> grams = GLD(inst);
+            for (Gram gramatica : grams) {
+                System.out.println(gramatica.Variable + " -> " + gramatica.Term);
             }
+            //List<Gram> gramatica = GLD(inst); 
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("El archivo no existe.");
         }
     }
-    
-    public static void gramatica(String path, String salida) {
-        System.out.println("Archivo: " + path + "  Archivo salida: " + salida);
+
+    public static class Gram {
+        public String Variable;
+        public String Term;
+
+        public Gram (String Variable, String Term) {
+            this.Variable = Variable;
+            this.Term = Term;
+        }
+    }
+
+    public static List<Gram> GLD(String regex) {
+        List<Gram> prod = new ArrayList<>();
+        Stack<String> stack = new Stack<>();
+        boolean posi;
+
+        for (int i = 0; i < regex.length(); i++) {
+            String symbol = regex.substring(i,i+1);
+            System.out.println(symbol);
+            posi = termi.contains(symbol);
+            if (posi) {
+                String vari = String.valueOf((char)(noTerm + 1));
+                prod.add(new Gram(vari,symbol));
+                stack.push(vari);
+            } else if (symbol == "*") {
+                String vari = stack.pop();
+                String newVari = String.valueOf((char)(noTerm + 1));
+                prod.add(new Gram(newVari, vari + " " + newVari + " |λ"));
+                stack.push(newVari);
+            } else if (symbol == "|") {
+                String vari2 = stack.pop();
+                String vari = stack.pop();
+                String newVari = String.valueOf((char)(noTerm + 1));
+                prod.add(new Gram(newVari,vari + " | " + vari2));
+                stack.push(newVari);
+            } else if (symbol == "(") {
+                stack.push("(");
+            } else if (symbol == ")") {
+                List<String> noTerminales = new ArrayList<>();
+                String top = stack.peek();
+
+                while (!top.equals("(")) {
+                    noTerminales.add(stack.pop());
+                    top = stack.peek();
+                }
+
+                stack.pop();
+                String newVari = String.valueOf((char)(noTerm + 1));
+                prod.add(new Gram(newVari, String.join(" ", noTerminales)));
+                stack.push(newVari);
+            }
+        }
+
+        prod.add(new Gram("S", stack.pop()));
+        return prod;
     }
     
-    public static void minimo(String path, String salida) {
-        System.out.println("Archivo: " + path + "  Archivo salida: " + salida);
+    public static void minimo(String path) {
+        System.out.println("Archivo: " + path);
     }
     
     public static void evaluar(String path) {
